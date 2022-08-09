@@ -1,7 +1,18 @@
 const { query } = require('express');
 const connect=require('../db')
 const jwt=require('jsonwebtoken');
-const nodemailer=require('../utils/email')
+const nodemailer=require('../utils/email');
+const router = require('../routes/user');
+const { promisify } = require("util");
+
+
+
+
+const  jwtVerify =async(token)=>{
+  //const decoded = await promisify(jwt.verify)(token, process.env.JWT);
+  var decoded = jwt.verify(token, process.env.JWT);
+return decoded;
+}
 exports.signup=async(req, res) => {
     let user = req.body;
    let  query = "select email ,password, role ,status from user where email=?";
@@ -72,7 +83,7 @@ exports.signup=async(req, res) => {
         }
        const accesstoken=  jwt.sign({
         responce
-        }, 'secret', { expiresIn: '1h' });
+        }, process.env.JWT, { expiresIn: '1h' });
          
         res.status(200).json({
           status:"success",
@@ -137,3 +148,92 @@ exports.signup=async(req, res) => {
      } )}
     
   
+     exports.updateUser=(req,res)=>{
+      let user=req.body;
+      let query="update user set status=? where id =?"
+      connect.query(query,[user.status,user.id],(err,result)=>{
+        if(!err){
+          if(results.affectedRows==0){
+           return res.status(404).json({
+              message:"user id does not exit"
+            })
+          }
+          return res.status(200).json({
+            status:"success",
+            data:"user updated successfully"
+          })
+        }
+        else{
+          return res.status(500).json(err);
+        }
+      })
+     }
+     exports.checkout=(req,res)=>{
+
+     
+      return res.status(200).json({
+        data:"true"
+      })
+     }
+
+//     //  router.post("/changePassword",(req,res)=>{
+
+// });
+
+
+
+exports.prodect=(req,res,next)=>{
+  const authHeader=req.headers['authorization']
+  const token = req.headers.authorization.split(" ")[2];
+ 
+  jwt.verify(token, process.env.JWT, function(err, auth) {
+    
+  if (auth) {
+  
+    let query="select email,role from user where email=?"
+    connect.query(query,[auth.responce.email],(err,result)=>{
+  
+     if(!err){
+    
+       req.email=result[0].email;
+       req.rolle=result[0].role;
+    
+       next();
+     }
+   });
+  }
+  else{
+    return res.status(401).json({
+      status:"failue",
+      data:"Can't access"
+    })
+  }
+});
+ 
+if(!token){
+  return res.status(401).json({
+    status:"failue",
+    data:"Can't access"
+  })
+
+}
+    
+
+
+}
+
+
+exports.restictTo=(role)=>{
+  return (req,res,next)=>{
+if(role==req.role){
+  next();
+}
+else{
+  return res.status(401).json({
+    status:'faliure',
+    data:`This page is access to only ${role}`
+
+  })
+}
+}
+}
