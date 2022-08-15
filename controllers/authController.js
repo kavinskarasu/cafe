@@ -176,9 +176,46 @@ exports.signup=async(req, res) => {
       })
      }
 
-//     //  router.post("/changePassword",(req,res)=>{
+      exports.passwordChange=("/changePassword",(req,res)=>{
+        const user=req.body;
+        const email=req.email;
+        const password=req.body.newPassword;
+        //console.log(user,email,password,user.currentPassword)
+        var query="select *from user where email=? and password=?"
+        connect.query(query,[email,user.currentPassword],(err,results)=>{
+          if(!err){
+            console.log(results)
+            if(results.length<=0){
+              
+              res.status(400).json({message:"Incorrect  old password"})
+            }
+            var query="update user set password=? where email=?"
+            connect.query(query,[password,email],(err,results)=>{
+              
+              if(!err&&results.affectedRows==0){
+               
+                res.status(500).json({
+                  status:"failure",
+                  message:"User password is not updated please try again"
+                })
+              }
+              else{
+                res.status(200).json({
+                  status:"success",
+                  message:"user password updated successfuly"
+                })
+              }
+            })
+          }
+          else{
+            res.status(500).json({
+              status:"failure",
+              message:err
+            })
+          }
+        })
 
-// });
+});
 
 
 
@@ -196,7 +233,7 @@ exports.prodect=(req,res,next)=>{
      if(!err){
     
        req.email=result[0].email;
-       req.rolle=result[0].role;
+       req.role=result[0].role;
     
        next();
      }
@@ -225,6 +262,7 @@ if(!token){
 
 exports.restictTo=(role)=>{
   return (req,res,next)=>{
+   
 if(role==req.role){
   next();
 }
